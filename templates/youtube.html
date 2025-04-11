@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YouTube Quick Summarizer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#4843D9',
+            secondary: '#E8E6FD',
+            customBlue: '#E6F0FF',
+            success: '#10B981',
+            error: '#EF4444'
+          },
+          borderRadius: {
+            'none': '0px',
+            'sm': '4px',
+            DEFAULT: '8px',
+            'md': '12px',
+            'lg': '16px',
+            'xl': '20px',
+            '2xl': '24px',
+            '3xl': '32px',
+            'full': '9999px',
+            'button': '8px'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    :where([class^="ri-"])::before { content: "\f3c2"; }
+    .fade-in { animation: fadeIn 0.3s ease-in; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  </style>
+</head>
+<body class="bg-customBlue min-h-screen">
+  <div class="max-w-6xl mx-auto px-4 py-8">
+    <header class="text-center mb-12">
+      <h1 class="text-4xl font-bold text-gray-900 mb-4">YouTube Quick Summarizer</h1>
+      <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+        Automatically detect and summarize videos in different languages into english.
+      </p>
+    </header>
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+      <form id="summaryForm">
+        <div class="relative mb-6">
+          <input type="text" id="youtubeUrl" name="youtubeUrl" placeholder="Paste YouTube URL here (e.g., https://www.youtube.com/watch?v=...)" 
+                 class="w-full px-4 py-3 border border-gray-200 rounded focus:outline-none focus:border-primary text-gray-700">
+          <button type="submit" id="summarizeBtn" class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-primary text-white px-6 py-2 !rounded-button hover:bg-opacity-90 transition-all whitespace-nowrap cursor-pointer">
+            Summarize
+          </button>
+        </div>
+        <div class="flex gap-4 mb-6">
+          <button type="button" id="paragraphModeBtn" class="flex-1 py-2 bg-primary text-white !rounded-button hover:bg-opacity-90 transition-all whitespace-nowrap cursor-pointer">
+            Paragraph 
+          </button>
+          <button type="button" id="bulletModeBtn" class="flex-1 py-2 bg-gray-100 text-gray-700 !rounded-button hover:bg-gray-200 transition-all whitespace-nowrap cursor-pointer">
+            Bullet Points 
+          </button>
+        </div>
+        <div class="relative">
+          <div class="bg-gray-50 rounded p-6 min-h-[300px] max-h-[300px] overflow-y-auto pr-8" id="summaryContent">
+            <p class="text-gray-500">Your summary will appear here...</p>
+          </div>
+          <button type="button" onclick="scrollToTop()" id="scrollTopBtn" class="hidden fixed right-4 bottom-4 bg-primary text-white w-10 h-10 !rounded-full flex items-center justify-center hover:bg-opacity-90 transition-all">
+            <i class="ri-arrow-up-line"></i>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-4 right-4 hidden">
+    <div class="px-6 py-3 rounded-lg shadow-lg text-white font-medium flex items-center">
+      <i id="toastIcon" class="ri-information-line mr-2"></i>
+      <span id="toastMessage">This is a toast message</span>
+    </div>
+  </div>
+
+  <script>
+    const summaryContent = document.getElementById('summaryContent');
+    const scrollTopBtn = document.getElementById('scrollTopBtn');
+    const youtubeUrlInput = document.getElementById('youtubeUrl');
+    const summarizeBtn = document.getElementById('summarizeBtn');
+    const paragraphModeBtn = document.getElementById('paragraphModeBtn');
+    const bulletModeBtn = document.getElementById('bulletModeBtn');
+    const summaryForm = document.getElementById('summaryForm');
+    const toast = document.getElementById('toast');
+    const toastMessage = document.getElementById('toastMessage');
+    const toastIcon = document.getElementById('toastIcon');
+
+    let currentSummary = '';
+    let currentFormat = 'paragraph';
+
+    // Show toast notification
+    function showToast(message, type = 'info') {
+      const colors = {
+        info: { bg: 'bg-primary', icon: 'ri-information-line' },
+        success: { bg: 'bg-success', icon: 'ri-checkbox-circle-line' },
+        error: { bg: 'bg-error', icon: 'ri-error-warning-line' }
+      };
+      
+      toast.className = `fixed bottom-4 right-4 ${colors[type].bg} fade-in`;
+      toastIcon.className = `${colors[type].icon} mr-2`;
+      toastMessage.textContent = message;
+      toast.classList.remove('hidden');
+      
+      setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 3000);
+    }
+
+    // Scroll to top button functionality
+    summaryContent.addEventListener('scroll', function () {
+      if (summaryContent.scrollTop > 100) {
+        scrollTopBtn.classList.remove('hidden');
+      } else {
+        scrollTopBtn.classList.add('hidden');
+      }
+    });
+
+    function scrollToTop() {
+      summaryContent.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    }
+
+    // Form submission handler
+    summaryForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const url = youtubeUrlInput.value.trim();
+      if (!url) {
+        showToast('Please enter a valid YouTube URL.', 'error');
+        return;
+      }
+
+      // Validate YouTube URL format
+      if (!url.match(/^(https?\:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+$/)) {
+        showToast('Please enter a valid YouTube URL.', 'error');
+        return;
+      }
+
+      // Show loading state
+      summaryContent.innerHTML = `
+        <div class="flex items-center justify-center h-full">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <span class="ml-2">Fetching and summarizing video...</span>
+        </div>
+      `;
+
+      try {
+        const response = await fetch('/summarize-youtube', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ url, format: currentFormat })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to summarize video');
+        }
+
+        currentSummary = data.summary;
+        displaySummary(currentSummary, currentFormat);
+        showToast('Summary generated successfully!', 'success');
+      } catch (error) {
+        console.error('Error:', error);
+        summaryContent.innerHTML = `
+          <p class="text-error">Error: ${error.message || 'Failed to summarize video. Please try again.'}</p>
+        `;
+        showToast(error.message || 'Failed to summarize video', 'error');
+      }
+    });
+
+    // Display summary in the selected format
+    function displaySummary(summary, format) {
+      if (format === 'paragraph') {
+        summaryContent.innerHTML = `<p class="text-gray-700">${summary}</p>`;
+      } else {
+        // Convert paragraph to bullet points (simple implementation)
+        const sentences = summary.split('. ').filter(s => s.trim().length > 0);
+        const bulletPoints = sentences.map(s => `<li>${s.replace(/\.$/, '')}</li>`).join('');
+        summaryContent.innerHTML = `
+          <ul class="list-disc pl-4 text-gray-700">
+            ${bulletPoints}
+          </ul>
+        `;
+      }
+    }
+
+    // Paragraph Mode button functionality
+    paragraphModeBtn.addEventListener('click', () => {
+      paragraphModeBtn.classList.add('bg-primary', 'text-white');
+      paragraphModeBtn.classList.remove('bg-gray-100', 'text-gray-700');
+      bulletModeBtn.classList.remove('bg-primary', 'text-white');
+      bulletModeBtn.classList.add('bg-gray-100', 'text-gray-700');
+      currentFormat = 'paragraph';
+      
+      if (currentSummary) {
+        displaySummary(currentSummary, currentFormat);
+      }
+    });
+
+    // Bullet Points Mode button functionality
+    bulletModeBtn.addEventListener('click', () => {
+      bulletModeBtn.classList.add('bg-primary', 'text-white');
+      bulletModeBtn.classList.remove('bg-gray-100', 'text-gray-700');
+      paragraphModeBtn.classList.remove('bg-primary', 'text-white');
+      paragraphModeBtn.classList.add('bg-gray-100', 'text-gray-700');
+      currentFormat = 'bullet';
+      
+      if (currentSummary) {
+        displaySummary(currentSummary, currentFormat);
+      }
+    });
+  </script>
+</body>
+</html>

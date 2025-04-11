@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartSummarAI - AI-Powered Content Summarization</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet"> <!-- Pacifico for the logo -->
+  <link href="https://fonts.googleapis.com/css2?family=Inknut+Antiqua&display=swap" rel="stylesheet"> <!-- Inknut Antiqua for other text -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            inknutAntiqua: ['Inknut Antiqua', 'serif'], // Add Inknut Antiqua
+          },
+          colors: {
+            primary: '#4F46E5',
+            secondary: '#10B981'
+          },
+          borderRadius: {
+            'none': '0px',
+            'sm': '4px',
+            DEFAULT: '8px',
+            'md': '12px',
+            'lg': '16px',
+            'xl': '20px',
+            '2xl': '24px',
+            '3xl': '32px',
+            'full': '9999px',
+            'button': '8px'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    :where([class^="ri-"])::before { content: "\f3c2"; }
+
+    /* Fade-in / Fade-out */
+    .fade-in { animation: fadeIn 0.5s ease-in forwards; }
+    .fade-out { animation: fadeOut 0.5s ease-out forwards; }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes fadeOut {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+
+    /* Slide-in / Slide-out */
+    .slide-in-left { animation: slideInLeft 0.5s ease-out forwards; }
+    .slide-out-left { animation: slideOutLeft 0.5s ease-out forwards; }
+    .slide-in-right { animation: slideInRight 0.5s ease-out forwards; }
+    .slide-out-right { animation: slideOutRight 0.5s ease-out forwards; }
+    @keyframes slideInLeft {
+      from { transform: translateX(-100%); }
+      to { transform: translateX(0); }
+    }
+    @keyframes slideOutLeft {
+      from { transform: translateX(0); }
+      to { transform: translateX(-100%); }
+    }
+    @keyframes slideInRight {
+      from { transform: translateX(100%); }
+      to { transform: translateX(0); }
+    }
+    @keyframes slideOutRight {
+      from { transform: translateX(0); }
+      to { transform: translateX(100%); }
+    }
+
+    /* Text Animations */
+    .text-reveal {
+      display: inline-block;
+      overflow: hidden;
+      white-space: nowrap;
+      animation: revealText 2s steps(40, end) forwards;
+    }
+    @keyframes revealText {
+      from { width: 0; }
+      to { width: 100%; }
+    }
+
+    /* Push-up Animation */
+    .push-up {
+      animation: pushUp 1s ease-out forwards;
+    }
+    @keyframes pushUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    /* Hover Effects for Action Cards */
+    .action-card {
+      background-color: #ffffff;
+      border: 1px solid #e5e7eb;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 6px rgba(72, 67, 217, 0.1); /* Initial shadow */
+    }
+    .action-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 15px rgba(57, 51, 235, 0.833); /* Hover shadow with #4843D9 color */
+    }
+
+    /* Hero Section with Vanta.js Fog Effect */
+    #hero {
+      position: relative;
+      overflow: hidden;
+      height: 100vh; /* Ensure the hero section covers the full viewport height */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <nav class="fixed top-0 left-0 right-0 bg-white shadow-sm z-50">
+    <div class="max-w-7xl mx-auto px-4">
+      <div class="flex justify-between items-center h-16">
+        <div class="flex items-center">
+          <a href="#" class="font-['Pacifico'] text-4xl text-primary">SmartSummarAI</a> <!-- Pacifico for the logo -->
+        </div>
+        <div class="flex space-x-4">
+          <a href="{{url_for('pdf') }}" class="tab-btn !rounded-button px-6 py-2 text-gray-600 hover:text-primary whitespace-nowrap cursor-pointer">
+            <i class="ri-file-pdf-line ri-lg mr-2"></i>PDF
+          </a>
+          <a href="{{url_for('youtube') }}" class="tab-btn !rounded-button px-6 py-2 text-gray-600 hover:text-primary whitespace-nowrap cursor-pointer">
+            <i class="ri-youtube-line ri-lg mr-2"></i>YouTube
+          </a>
+          <a href="{{url_for('image') }}" class="tab-btn !rounded-button px-6 py-2 text-gray-600 hover:text-primary whitespace-nowrap cursor-pointer">
+            <i class="ri-image-line ri-lg mr-2"></i>Image
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+  <main class="pt-20 pb-16">
+    <!-- Hero Section with Vanta.js Fog Effect -->
+    <section id="hero" class="relative py-40 flex items-center justify-center">
+      <div class="max-w-7xl mx-auto px-4 text-center">
+        <h1 class="text-4xl font-bold text-black mb-6 push-up font-inknutAntiqua"> <!-- Inknut Antiqua for the heading -->
+          Transform Content into Clear, Concise Summaries
+        </h1>
+        <p class="text-xl text-grey mb-8 push-up font-inknutAntiqua"> <!-- Inknut Antiqua for the paragraph -->
+          Experience the power of AI-driven summarization. Extract key insights from PDFs, YouTube videos, and images instantly.
+        </p>
+        <button onclick="scrollToFeatures()" class="bg-white text-primary px-8 py-3 !rounded-button hover:bg-white/90 transition-colors whitespace-nowrap cursor-pointer push-up">
+          Get Started
+        </button>
+      </div>
+    </section>
+
+    <!-- Features Section with Colored Shadow for Action Cards -->
+    <section id="features" class="py-20 bg-white">
+      <div class="max-w-7xl mx-auto px-4">
+        <div class="text-center mb-16">
+          <h2 class="text-3xl font-bold text-gray-900 mb-4 font-inknutAntiqua"> <!-- Inknut Antiqua for the heading -->
+            Powerful Summarization Tools
+          </h2>
+          <p class="text-gray-600 max-w-xl mx-auto font-inknutAntiqua"> <!-- Inknut Antiqua for the paragraph -->
+            Explore our suite of specialized summarization tools tailored for different content formats.
+          </p>
+        </div>
+        <div class="grid grid-cols-3 gap-8">
+          <a href="{{url_for('pdf') }}" class="block">
+            <div class="action-card p-8 rounded-lg transition-all duration-300">
+              <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-6">
+                <i class="ri-file-pdf-line ri-2x text-primary"></i>
+              </div>
+              <h3 class="text-xl font-semibold mb-4 font-inknutAntiqua"> <!-- Inknut Antiqua for the heading -->
+                PDF Summarization
+              </h3>
+              <p class="text-gray-600 font-inknutAntiqua"> <!-- Inknut Antiqua for the paragraph -->
+                Extract key points from documents, research papers, and reports. Get concise summaries in seconds.
+              </p>
+            </div>
+          </a>
+          <a href="{{url_for('youtube') }}" class="block">
+            <div class="action-card p-8 rounded-lg transition-all duration-300">
+              <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-6">
+                <i class="ri-youtube-line ri-2x text-primary"></i>
+              </div>
+              <h3 class="text-xl font-semibold mb-4 font-inknutAntiqua"> <!-- Inknut Antiqua for the heading -->
+                YouTube Summarization
+              </h3>
+              <p class="text-gray-600 font-inknutAntiqua"> <!-- Inknut Antiqua for the paragraph -->
+                Get the essence of any YouTube video without watching the entire content. Save time and stay informed.
+              </p>
+            </div>
+          </a>
+          <a href="{{url_for('image') }}" class="block">
+            <div class="action-card p-8 rounded-lg transition-all duration-300">
+              <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-6">
+                <i class="ri-image-line ri-2x text-primary"></i>
+              </div>
+              <h3 class="text-xl font-semibold mb-4 font-inknutAntiqua"> <!-- Inknut Antiqua for the heading -->
+                Image Summarization
+              </h3>
+              <p class="text-gray-600 font-inknutAntiqua"> <!-- Inknut Antiqua for the paragraph -->
+                Convert image-based text and content into readable summaries. Perfect for infographics and presentations.
+              </p>
+            </div>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Meet the Team Section -->
+    <section id="team" class="py-20 bg-gray-50">
+      <div class="max-w-7xl mx-auto px-4">
+        <div class="text-center mb-16">
+          <h2 class="text-3xl font-bold text-gray-900 mb-4 font-inknutAntiqua"> <!-- Inknut Antiqua for the heading -->
+            Meet the Team
+          </h2>
+          <div class="grid grid-cols-2 gap-8">
+            <div class="text-center">
+              <h3 class="text-xl font-semibold mb-2">Vaishnavi Parab</h3>
+              <p class="text-gray-600">Team Member</p>
+              <p class="text-gray-500">Specializes in AI and machine learning, driving the technical development of SmartSummarAI.</p>
+            </div>
+            <div class="text-center">
+              <h3 class="text-xl font-semibold mb-2">Sakshi Ubale</h3>
+              <p class="text-gray-600">Team Member</p>
+              <p class="text-gray-500">Specializes in deep learning and AI algorithms, enhancing the core intelligence and functionality of SmartSummarAI.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Loading Animation Example -->
+    <div id="loading" class="fixed inset-0 bg-white/90 flex items-center justify-center z-50 fade-out">
+      <div class="loading-spinner"></div>
+    </div>
+  </main>
+
+  <footer class="bg-gray-900 text-white py-12">
+    <div class="max-w-7xl mx-auto px-4">
+      <div class="grid grid-cols-3 gap-8">
+        <div>
+          <h4 class="font-['Pacifico'] text-xl mb-4">SmartSummarAI</h4> <!-- Pacifico for the logo -->
+          <p class="text-gray-400"> <!-- Inknut Antiqua for the paragraph -->
+            Transforming content into clear, actionable insights with the power of AI.
+          </p>
+        </div>
+        <div>
+          <h4 class="font-semibold mb-4">Features</h4>
+          <ul class="space-y-2 text-gray-400">
+            <li>PDF Summarization</li>
+            <li>YouTube Analysis</li>
+            <li>Image Processing</li>
+            <li>AI Assistant</li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="font-semibold mb-4">Contact</h4>
+          <ul class="space-y-2 text-gray-400">
+            <li>vaishnaviprb192@gmail.com</li>
+            <li>sakshiubale3@gmail.com</li>
+          </ul>
+        </div>
+      </div>
+      <div class="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
+        <p>&copy; 2025 SmartSummarAI. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Loading Animation
+    window.addEventListener('load', () => {
+      const loading = document.getElementById('loading');
+      loading.classList.add('fade-out');
+      setTimeout(() => loading.remove(), 500);
+    });
+
+    // Scroll to Features
+    function scrollToFeatures() {
+      document.getElementById('features').scrollIntoView({ behavior: 'smooth' });
+    }
+  </script>
+
+  <!-- Add Three.js and Vanta.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r121/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.fog.min.js"></script>
+  <script>
+    // Initialize Vanta.js Fog Effect
+    var setVanta = () => {
+      if (window.VANTA) {
+        window.VANTA.FOG({
+          el: "#hero", // Apply the effect to the hero section
+          mouseControls: true,
+          touchControls: true,
+          gyroControls: false,
+          minHeight: 50.00, // Reduced height
+          minWidth: 100.00,
+          highlightColor: 0x7a73d1, // Updated highlight color (#7a73d1)
+          midtoneColor: 0xb2a5ff,   // Updated midtone color (#b2a5ff)
+          lowlightColor: 0xdad2ff,   // Updated lowlight color (#dad2ff)
+          speed: 10.0
+        });
+      }
+    };
+
+    // Call the function to initialize Vanta.js
+    setVanta();
+  </script>
+</body>
+</html>

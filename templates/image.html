@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Automated Image Summarizer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#4843D9',
+            secondary: '#4843D9',
+            customBlue: '#E6F0FF',
+          },
+          borderRadius: {
+            'none': '0px',
+            'sm': '4px',
+            DEFAULT: '8px',
+            'md': '12px',
+            'lg': '16px',
+            'xl': '20px',
+            '2xl': '24px',
+            '3xl': '32px',
+            'full': '9999px',
+            'button': '8px'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .upload-area { transition: all 0.3s ease; }
+    .upload-area.drag-over {
+      background-color: rgba(72, 67, 217, 0.1);
+      transform: scale(1.02);
+      border-color: #4843D9;
+    }
+    #uploadIcon { transition: all 0.3s ease; }
+    .upload-area:hover #uploadIcon { transform: scale(1.1); }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+    .shake { animation: shake 0.3s ease-in-out; }
+  </style>
+</head>
+<body class="bg-customBlue min-h-screen">
+  <div class="container mx-auto px-4 py-8 flex">
+    <div class="flex-1 max-w-3xl mx-auto">
+      <h1 class="text-4xl font-bold text-center mb-4 text-gray-800">Automated Image Summarizer</h1>
+      <p class="text-lg text-gray-600 text-center mb-8">Effortlessly summarize images into clear, concise summaries</p>
+
+      <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+        <div class="flex space-x-2 mb-6">
+          <button id="paragraphTab" class="flex-1 py-2 px-4 rounded-lg bg-primary text-white font-medium">
+            <i class="ri-file-text-line mr-2"></i>Paragraph
+          </button>
+          <button id="bulletTab" class="flex-1 py-2 px-4 rounded-lg bg-gray-100 text-gray-600 font-medium">
+            <i class="ri-list-check-2 mr-2"></i>Bullet Points
+          </button>
+        </div>
+
+        <div class="mb-6">
+          <h2 class="text-lg font-semibold mb-2">Output Language</h2>
+          <select id="language" class="w-full p-2 border rounded-lg">
+            <option value="en">English</option>
+            <option value="fr">French</option>
+            <option value="es">Spanish</option>
+            <option value="de">German</option>
+            <option value="it">Italian</option>
+            <option value="ko">Korean</option>
+            <option value="ar">Arabic</option>
+          </select>
+        </div>
+
+        <div class="upload-area border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer mb-6 relative group">
+          <input type="file" name="image" id="fileInput" class="hidden" accept="image/*">
+          <div id="uploadIcon" class="w-16 h-16 mx-auto mb-4 flex items-center justify-center bg-primary/10 rounded-full">
+            <i class="ri-upload-cloud-line text-3xl text-primary"></i>
+          </div>
+          <div id="fileInfo" class="hidden p-4 bg-gray-50 rounded-lg mt-4">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center">
+                <i class="ri-image-line text-2xl mr-2"></i>
+                <div>
+                  <p id="fileName" class="text-sm font-medium text-gray-700"></p>
+                  <p id="fileSize" class="text-xs text-gray-500"></p>
+                </div>
+              </div>
+              <button id="removeFile" class="text-gray-400 hover:text-gray-600">
+                <i class="ri-close-line text-xl"></i>
+              </button>
+            </div>
+          </div>
+          <p class="text-gray-600 mb-2">Upload image or drag and drop here</p>
+          <p id="fileValidation" class="text-sm text-gray-500">Supported formats: JPEG, PNG, GIF, BMP, WebP (Max 10MB)</p>
+        </div>
+
+        <div class="bg-gray-50 rounded-lg p-4 mb-6 min-h-[200px] max-h-[400px] overflow-y-auto relative">
+          <div id="summaryOutput" class="text-gray-700">
+            Your summary will appear here...
+          </div>
+          <button id="scrollDown" class="absolute bottom-2 right-2 w-8 h-8 bg-primary text-white rounded-full shadow-lg flex items-center justify-center opacity-0 transition-opacity duration-300">
+            <i class="ri-arrow-down-s-line"></i>
+          </button>
+        </div>
+
+        <button id="summarizeBtn" class="w-full py-3 px-6 rounded-lg bg-primary text-white font-medium flex items-center justify-center">
+          <i class="ri-magic-line mr-2"></i>
+          Summarize
+        </button>
+      </div>
+
+      <div id="errorToast" class="fixed top-4 right-4 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 hidden rounded shadow-lg">
+        <div class="flex items-center">
+          <i class="ri-error-warning-line mr-2"></i>
+          <p id="errorMessage">Please upload an Image file first</p>
+        </div>
+      </div>
+
+      <div id="successToast" class="fixed top-4 right-4 bg-green-100 border-l-4 border-green-500 text-green-700 p-4 hidden rounded shadow-lg">
+        <div class="flex items-center">
+          <i class="ri-checkbox-circle-line mr-2"></i>
+          <p>Summary generated successfully!</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="fixed right-8 bottom-8 z-50">
+      <button id="chatToggle" class="w-14 h-14 bg-secondary text-white rounded-full shadow-lg flex items-center justify-center cursor-pointer">
+        <i class="ri-message-3-line text-2xl"></i>
+      </button>
+      <div id="chatbox" class="hidden absolute bottom-16 right-0 w-80 bg-white rounded-lg shadow-xl">
+        <div class="p-4 border-b bg-primary/10">
+          <h3 class="font-medium text-primary">SmartSummarAI Chat Assistant</h3>
+        </div>
+        <div id="chatMessages" class="h-80 overflow-y-auto p-4">
+          <div class="flex mb-4">
+            <div class="bg-[#4843D9] rounded-lg p-3 max-w-[80%]">
+              <p class="text-sm text-white">Hey! I'm your SmartSummarAI Chat Assistant. Upload an image and I can answer questions about it!</p>
+            </div>
+          </div>
+        </div>
+        <div class="p-4 border-t">
+          <div class="flex">
+            <input type="text" id="chatInput" class="flex-1 border rounded-l-lg px-3 py-2 focus:outline-none" placeholder="Type your message...">
+            <button id="sendMessage" class="px-4 py-2 bg-secondary text-white rounded-r-lg">
+              <i class="ri-send-plane-line"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Global variable to store the current summary context
+    let currentSummaryContext = '';
+    
+    // DOM Elements
+    const uploadArea = document.querySelector('.upload-area');
+    const fileInput = document.getElementById('fileInput');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
+    const removeFile = document.getElementById('removeFile');
+    const paragraphTab = document.getElementById('paragraphTab');
+    const bulletTab = document.getElementById('bulletTab');
+    const summarizeBtn = document.getElementById('summarizeBtn');
+    const summaryOutput = document.getElementById('summaryOutput');
+    const errorToast = document.getElementById('errorToast');
+    const errorMessage = document.getElementById('errorMessage');
+    const successToast = document.getElementById('successToast');
+    const fileValidation = document.getElementById('fileValidation');
+    const languageSelect = document.getElementById('language');
+    const chatToggle = document.getElementById('chatToggle');
+    const chatbox = document.getElementById('chatbox');
+    const chatInput = document.getElementById('chatInput');
+    const sendMessage = document.getElementById('sendMessage');
+    const chatMessages = document.getElementById('chatMessages');
+    const scrollDownBtn = document.getElementById('scrollDown');
+
+    // Initialize tabs
+    paragraphTab.classList.add('bg-primary', 'text-white');
+    bulletTab.classList.add('bg-gray-100', 'text-gray-600');
+
+    // Supported image types
+    const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/bmp", "image/webp"];
+    const maxSize = 10 * 1024 * 1024; // 10MB
+
+    // Event Listeners
+    uploadArea.addEventListener('click', () => fileInput.click());
+    uploadArea.addEventListener('dragover', handleDragOver);
+    uploadArea.addEventListener('dragleave', handleDragLeave);
+    uploadArea.addEventListener('drop', handleDrop);
+    fileInput.addEventListener('change', handleFileSelect);
+    removeFile.addEventListener('click', removeSelectedFile);
+    paragraphTab.addEventListener('click', () => switchTab('paragraph'));
+    bulletTab.addEventListener('click', () => switchTab('bullet'));
+    summarizeBtn.addEventListener('click', summarizeImage);
+    chatToggle.addEventListener('click', toggleChat);
+    sendMessage.addEventListener('click', sendChatMessage);
+    chatInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendChatMessage();
+    });
+
+    // Scroll down button for summary
+    summaryOutput.addEventListener('scroll', () => {
+      const maxScroll = summaryOutput.scrollHeight - summaryOutput.clientHeight;
+      const currentScroll = summaryOutput.scrollTop;
+      if (maxScroll > 20) {
+        scrollDownBtn.style.opacity = currentScroll >= maxScroll ? '0' : '1';
+      }
+    });
+    scrollDownBtn.addEventListener('click', () => {
+      summaryOutput.scrollTo({
+        top: summaryOutput.scrollHeight,
+        behavior: 'smooth'
+      });
+    });
+
+    // Functions
+    function handleDragOver(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      uploadArea.classList.add('drag-over');
+    }
+
+    function handleDragLeave(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      uploadArea.classList.remove('drag-over');
+    }
+
+    function handleDrop(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      uploadArea.classList.remove('drag-over');
+      if (e.dataTransfer.files.length) {
+        handleFile(e.dataTransfer.files[0]);
+      }
+    }
+
+    function handleFileSelect(e) {
+      if (e.target.files.length) {
+        handleFile(e.target.files[0]);
+      }
+    }
+
+    function handleFile(file) {
+      // Reset previous state
+      fileValidation.className = 'text-sm text-gray-500';
+      fileValidation.textContent = 'Supported formats: JPEG, PNG, GIF, BMP, WebP (Max 10MB)';
+      
+      // Validate file type
+      if (!allowedTypes.includes(file.type)) {
+        showError('Please upload a valid image file (JPEG, PNG, GIF, BMP, WebP)');
+        return;
+      }
+      
+      // Validate file size
+      if (file.size > maxSize) {
+        showError('File size exceeds 10MB limit');
+        return;
+      }
+      
+      // Display file info
+      fileName.textContent = file.name;
+      fileSize.textContent = formatFileSize(file.size);
+      fileInfo.classList.remove('hidden');
+    }
+
+    function formatFileSize(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    function removeSelectedFile() {
+      fileInput.value = '';
+      fileInfo.classList.add('hidden');
+      currentSummaryContext = '';
+    }
+
+    function switchTab(tab) {
+      if (tab === 'paragraph') {
+        paragraphTab.classList.add('bg-primary', 'text-white');
+        paragraphTab.classList.remove('bg-gray-100', 'text-gray-600');
+        bulletTab.classList.remove('bg-primary', 'text-white');
+        bulletTab.classList.add('bg-gray-100', 'text-gray-600');
+      } else {
+        bulletTab.classList.add('bg-primary', 'text-white');
+        bulletTab.classList.remove('bg-gray-100', 'text-gray-600');
+        paragraphTab.classList.remove('bg-primary', 'text-white');
+        paragraphTab.classList.add('bg-gray-100', 'text-gray-600');
+      }
+    }
+
+    async function summarizeImage() {
+      if (!fileInput.files.length) {
+        showError('Please upload an image first');
+        return;
+      }
+
+      // Show loading state
+      summaryOutput.innerHTML = `
+        <div class="flex items-center justify-center">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <span class="ml-2">Processing image and generating summary...</span>
+        </div>
+      `;
+
+      try {
+        const formData = new FormData();
+        formData.append('image', fileInput.files[0]);
+        formData.append('format', paragraphTab.classList.contains('bg-primary') ? 'paragraph' : 'bullet');
+        formData.append('language', languageSelect.value);
+
+        const response = await fetch('/summarize-image', {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to generate summary');
+        }
+
+        // Store the summary context for QA
+        currentSummaryContext = data.summary;
+
+        // Display the summary
+        if (data.format === 'bullet') {
+          const bulletPoints = data.summary.split('\n- ').filter(point => point.trim());
+          let html = '<ul class="list-disc pl-4 text-gray-700">';
+          bulletPoints.forEach(point => {
+            html += `<li>${point}</li>`;
+          });
+          html += '</ul>';
+          summaryOutput.innerHTML = html;
+        } else {
+          summaryOutput.innerHTML = `<p class="text-gray-700">${data.summary}</p>`;
+        }
+
+        // Show success message
+        successToast.classList.remove('hidden');
+        setTimeout(() => successToast.classList.add('hidden'), 3000);
+
+        // Inform user in chat
+        addChatMessage("I've summarized your image. You can now ask me questions about it!", false);
+      } catch (error) {
+        console.error('Error:', error);
+        showError(error.message);
+        summaryOutput.innerHTML = `
+          <div class="text-red-500">
+            <i class="ri-error-warning-line mr-2"></i>
+            Error: ${error.message}
+          </div>
+        `;
+      }
+    }
+
+    function showError(message) {
+      errorMessage.textContent = message;
+      errorToast.classList.remove('hidden');
+      setTimeout(() => errorToast.classList.add('hidden'), 3000);
+    }
+
+    function toggleChat() {
+      chatbox.classList.toggle('hidden');
+    }
+
+    async function sendChatMessage() {
+      const message = chatInput.value.trim();
+      if (!message) return;
+      
+      // Add user message to chat
+      addChatMessage(message, true);
+      chatInput.value = '';
+      
+      if (!currentSummaryContext) {
+        addChatMessage("Please upload and summarize an image first so I can answer your questions.", false);
+        return;
+      }
+      
+      // Show typing indicator
+      const typingIndicator = addTypingIndicator();
+      
+      try {
+        const response = await fetch('/ask', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            question: message,
+            context: currentSummaryContext
+          })
+        });
+        
+        const data = await response.json();
+        
+        // Remove typing indicator
+        typingIndicator.remove();
+        
+        if (response.ok) {
+          if (data.answer) {
+            addChatMessage(data.answer, false);
+          } else {
+            addChatMessage("I couldn't find a clear answer in the image content.", false);
+          }
+        } else {
+          addChatMessage("Sorry, I encountered an error processing your question.", false);
+          console.error('Error:', data.error);
+        }
+      } catch (error) {
+        typingIndicator.remove();
+        addChatMessage("Sorry, I'm having trouble connecting to the server.", false);
+        console.error('Error:', error);
+      }
+    }
+
+    function addChatMessage(message, isUser) {
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `flex mb-4 ${isUser ? 'justify-end' : ''}`;
+      messageDiv.innerHTML = `
+        <div class="${isUser ? 'bg-[#6366f1]' : 'bg-[#4843D9]'} rounded-lg p-3 max-w-[80%]">
+          <p class="text-sm text-white">${message}</p>
+        </div>
+      `;
+      chatMessages.appendChild(messageDiv);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function addTypingIndicator() {
+      const typingDiv = document.createElement('div');
+      typingDiv.className = 'flex mb-4';
+      typingDiv.innerHTML = `
+        <div class="bg-[#4843D9] rounded-lg p-3 max-w-[80%]">
+          <div class="flex space-x-1">
+            <div class="w-2 h-2 bg-white rounded-full animate-bounce"></div>
+            <div class="w-2 h-2 bg-white rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+            <div class="w-2 h-2 bg-white rounded-full animate-bounce" style="animation-delay: 0.4s"></div>
+          </div>
+        </div>
+      `;
+      chatMessages.appendChild(typingDiv);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+      return typingDiv;
+    }
+  </script>
+</body>
+</html>
